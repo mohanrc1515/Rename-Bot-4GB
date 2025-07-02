@@ -57,103 +57,70 @@ async def send_doc(client, message):
         try:
             await client.get_chat_member(FORCE_SUBS, user_id)
         except UserNotParticipant:
-            _newus = find_one(message.from_user.id)
-            user = _newus["usertype"]
             await message.reply_text("<b>Hello Dear \n\nYou Need To Join In My Channel To Use Me\n\nKindly Please Join Channel</b>",
                                      reply_to_message_id=message.id,
                                      reply_markup=InlineKeyboardMarkup([
                                          [InlineKeyboardButton("🔺 Update Channel 🔺", url=f"https://t.me/{FORCE_SUBS}")]
                                          ]))
-            await client.send_message(LOG_CHANNEL, f"<b><u>New User Started The Bot</u></b> \n\n<b>User ID :</b> <code>{user_id}</code> \n<b>First Name :</b> {message.from_user.first_name} \n<b>Last Name :</b> {message.from_user.last_name} \n<b>User Name :</b> @{message.from_user.username} \n<b>User Mention :</b> {message.from_user.mention} \n<b>User Link :</b> <a href='tg://openmessage?user_id={user_id}'>Click Here</a> \n<b>User Plan :</b> {user}")
+            await client.send_message(LOG_CHANNEL, f"<b><u>New User Started The Bot</u></b> \n\n<b>User ID :</b> <code>{user_id}</code> \n<b>First Name :</b> {message.from_user.first_name} \n<b>Last Name :</b> {message.from_user.last_name} \n<b>User Name :</b> @{message.from_user.username} \n<b>User Mention :</b> {message.from_user.mention} \n<b>User Link :</b> <a href='tg://openmessage?user_id={user_id}'>Click Here</a>")
             return
 		
     botdata(int(botid))
     bot_data = find_one(int(botid))
     prrename = bot_data['total_rename']
     prsize = bot_data['total_size']
-    user_deta = find_one(user_id)
-    used_date = user_deta["date"]
-    buy_date = user_deta["prexdate"]
-    daily = user_deta["daily"]
-    user_type = user_deta["usertype"]
-
-    c_time = time.time()
-
-    # Set all users to Premium with 10 second flood wait
-    LIMIT = 10
-    then = used_date + LIMIT
-    left = round(then - c_time)
-    conversion = datetime.timedelta(seconds=left)
-    ltime = str(conversion)
-    if left > 0:
-        await message.reply_text(f"<b>Sorry Dude I Am Not Only For You \n\nFlood Control Is Active So Please Wait For {ltime} </b>", reply_to_message_id=message.id)
-    else:
-        media = await client.get_messages(message.chat.id, message.id)
-        file = media.document or media.video or media.audio
-        dcid = FileId.decode(file.file_id).dc_id
-        filename = file.file_name
-        file_id = file.file_id
-        value = 4294967296  # 4GB in bytes
-        
-        # Set all users as Premium with 4GB limit
-        uploadlimit(message.from_user.id, value)
-        usertype(message.from_user.id, "Premium")
-        
-        used_ = find_one(message.from_user.id)
-        used = used_["used_limit"]
-        limit = used_["uploadlimit"]
-        expi = daily - int(time.mktime(time.strptime(str(date_.today()), '%Y-%m-%d')))
-        if expi != 0:
-            today = date_.today()
-            pattern = '%Y-%m-%d'
-            epcho = int(time.mktime(time.strptime(str(today), pattern)))
-            daily_(message.from_user.id, epcho)
-            used_limit(message.from_user.id, 0)
-            
-        remain = limit - used
-        if remain < int(file.file_size):
-            await message.reply_text(f"100% Of Daily {humanbytes(limit)} Data Quota Exhausted.\n\n<b>File Size Detected :</b> {humanbytes(file.file_size)}\n<b>Used Daily Limit :</b> {humanbytes(used)}\n\nYou Have Only <b>{humanbytes(remain)}</b> Left On Your Account.", 
-                                   reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
-            return
-            
-        if value < file.file_size:
-            await message.reply_text(f"You Can't Upload More Than 4GB File.\n\nFile Size Detected: {humanbytes(file.file_size)}", 
-                                   reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
-            return
-            
-        filesize = humanize.naturalsize(file.file_size)
-        fileid = file.file_id
-        total_rename(int(botid), prrename)
-        total_size(int(botid), prsize, file.file_size)
-        await message.reply_text(f"""__What Do You Want Me To Do With This File ?__\n\n**File Name :** `{filename}`\n**File Size :** {filesize}\n**DC ID :** {dcid}""", 
-                              reply_to_message_id=message.id, 
-                              reply_markup=InlineKeyboardMarkup(
-                                  [[InlineKeyboardButton("📝 Rename", callback_data="rename"),
-                                   InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
+    
+    # No flood control checks
+    media = await client.get_messages(message.chat.id, message.id)
+    file = media.document or media.video or media.audio
+    dcid = FileId.decode(file.file_id).dc_id
+    filename = file.file_name
+    file_id = file.file_id
+    
+    # Set unlimited access for all users
+    uploadlimit(message.from_user.id, 0)  # 0 means unlimited
+    usertype(message.from_user.id, "Unlimited")
+    
+    filesize = humanize.naturalsize(file.file_size)
+    fileid = file.file_id
+    total_rename(int(botid), prrename)
+    total_size(int(botid), prsize, file.file_size)
+    
+    await message.reply_text(
+        f"""__What Do You Want Me To Do With This File ?__\n\n**File Name :** `{filename}`\n**File Size :** {filesize}\n**DC ID :** {dcid}""", 
+        reply_to_message_id=message.id, 
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📝 Rename", callback_data="rename"),
+             InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]
+        ])
+    )
 
 @Client.on_message(filters.private & filters.command(["myplan"]))
 async def start(client, message):
-    used_ = find_one(message.from_user.id)
-    daily = used_["daily"]
-    expi = daily - int(time.mktime(time.strptime(str(date_.today()), '%Y-%m-%d')))
-    if expi != 0:
-        today = date_.today()
-        pattern = '%Y-%m-%d'
-        epcho = int(time.mktime(time.strptime(str(today), pattern)))
-        daily_(message.from_user.id, epcho)
-        used_limit(message.from_user.id, 0)
-        
-    # Set all users as Premium with 4GB limit
-    uploadlimit(message.from_user.id, 4294967296)
-    usertype(message.from_user.id, "Premium")
+    # Set unlimited access for all users
+    uploadlimit(message.from_user.id, 0)  # 0 means unlimited
+    usertype(message.from_user.id, "Unlimited")
     
     _newus = find_one(message.from_user.id)
-    used = _newus["used_limit"]
-    limit = _newus["uploadlimit"]
-    remain = int(limit) - int(used)
-    ends = _newus["prexdate"]
+    used = _newus.get("used_limit", 0)
     
-    normal_date = datetime.fromtimestamp(ends).strftime('%Y-%m-%d') if ends else "Lifetime"
-    text = f"""<b>User ID :</b> <code>{message.from_user.id}</code> \n<b>Name :</b> {message.from_user.mention} \n\n<b>🏷 Plan :</b> Premium \n\n✓ High Priority \n✓ Upload 4GB Files \n✓ Daily Upload : {humanbytes(limit)} \n✓ Today Used : {humanbytes(used)} \n✓ Remain : {humanbytes(remain)} \n✓ Timeout : 0 Second \n✓ Parallel process : Unlimited \n✓ Time Gap : Yes \n\n<b>Your Plan Ends On :</b> {normal_date}"""
+    text = f"""<b>🌟 Unlimited Access</b>
+┏━━━━━━━━━━━━━━━━━━
+┣ <b>User ID:</b> <code>{message.from_user.id}</code>
+┣ <b>Name:</b> {message.from_user.mention}
+┣ <b>Plan:</b> Unlimited
+┗━━━━━━━━━━━━━━━━━━
 
-    await message.reply_text(text, quote=True, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
+<b>🚀 Full Features</b>
+✓ No File Size Limits
+✓ No Daily Upload Limits
+✓ Priority Processing
+✓ Unlimited Parallel Tasks
+
+<b>📊 Usage Today:</b> {humanbytes(used)}"""
+
+    await message.reply_text(
+        text,
+        quote=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Close", callback_data="cancel")]])
+    )

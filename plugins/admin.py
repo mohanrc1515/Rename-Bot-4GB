@@ -18,7 +18,7 @@ async def warn(c, m):
 async def ceasepremium(bot, message):
     button = InlineKeyboardMarkup([
         [InlineKeyboardButton("Limit 1GB", callback_data="cp1"),
-        InlineKeyboardButton("Disable Account", callback_data="cp2")],
+         InlineKeyboardButton("Disable Account", callback_data="cp2")],
         [InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]
     ])
     await message.reply_text("🔧 Account Management", quote=True, reply_markup=button)
@@ -27,7 +27,7 @@ async def ceasepremium(bot, message):
 async def resetpower(bot, message):
     button = InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Yes", callback_data="dft"),
-        [InlineKeyboardButton("❌ No", callback_data="cancel")]
+         InlineKeyboardButton("❌ No", callback_data="cancel")]
     ])
     await message.reply_text(
         text="Reset user to default Premium (4GB) plan?",
@@ -38,39 +38,52 @@ async def resetpower(bot, message):
 # Account management callbacks
 @Client.on_callback_query(filters.regex('cp1'))
 async def cp1(bot, update):
-    id = update.message.reply_to_message.text.split("/ceasepower")
-    user_id = id[1].replace(" ", "")
-    uploadlimit(int(user_id), 1073741824)  # 1GB
-    usertype(int(user_id), "⚠️ Limited")
-    await update.message.edit("Account limited to 1GB successfully")
-    await bot.send_message(
-        user_id,
-        f"Your account has been limited to 1GB upload capacity.\n\n"
-        f"Contact admin @MadflixOfficials if this was a mistake."
-    )
+    try:
+        id = update.message.reply_to_message.text.split("/ceasepower")
+        user_id = id[1].replace(" ", "")
+        uploadlimit(int(user_id), 1073741824)  # 1GB
+        usertype(int(user_id), "⚠️ Limited")
+        await update.message.edit("Account limited to 1GB successfully")
+        await bot.send_message(
+            user_id,
+            f"Your account has been limited to 1GB upload capacity.\n\n"
+            f"Contact admin @MadflixOfficials if this was a mistake."
+        )
+    except Exception as e:
+        await update.message.edit(f"Error: {str(e)}")
 
 @Client.on_callback_query(filters.regex('cp2'))
 async def cp2(bot, update):
-    id = update.message.reply_to_message.text.split("/ceasepower")
-    user_id = id[1].replace(" ", "")
-    uploadlimit(int(user_id), 0)  # Disable account
-    usertype(int(user_id), "❌ Disabled")
-    await update.message.edit("Account disabled successfully")
-    await bot.send_message(
-        user_id,
-        f"Your account has been disabled.\n\n"
-        f"Contact admin @MadflixOfficials to resolve this."
-    )
+    try:
+        id = update.message.reply_to_message.text.split("/ceasepower")
+        user_id = id[1].replace(" ", "")
+        uploadlimit(int(user_id), 0)  # Disable account
+        usertype(int(user_id), "❌ Disabled")
+        await update.message.edit("Account disabled successfully")
+        await bot.send_message(
+            user_id,
+            f"Your account has been disabled.\n\n"
+            f"Contact admin @MadflixOfficials to resolve this."
+        )
+    except Exception as e:
+        await update.message.edit(f"Error: {str(e)}")
 
 @Client.on_callback_query(filters.regex('dft'))
 async def dft(bot, update):
-    id = update.message.reply_to_message.text.split("/resetpower")
-    user_id = id[1].replace(" ", "")
-    uploadlimit(int(user_id), 4294967296)  # Reset to default 4GB Premium
-    usertype(int(user_id), "Premium")
-    await update.message.edit("Account reset to default Premium (4GB) successfully")
-    await bot.send_message(
-        user_id,
-        f"Your account has been reset to default Premium plan with 4GB capacity.\n\n"
-        f"You can check your current plan with /myplan"
-    )
+    try:
+        id = update.message.reply_to_message.text.split("/resetpower")
+        user_id = id[1].replace(" ", "")
+        uploadlimit(int(user_id), 4294967296)  # Reset to default 4GB Premium
+        usertype(int(user_id), "Premium")
+        await update.message.edit("Account reset to default Premium (4GB) successfully")
+        await bot.send_message(
+            user_id,
+            f"Your account has been reset to default Premium plan with 4GB capacity.\n\n"
+            f"You can check your current plan with /myplan"
+        )
+    except Exception as e:
+        await update.message.edit(f"Error: {str(e)}")
+
+@Client.on_callback_query(filters.regex('cancel'))
+async def cancel(bot, update):
+    await update.message.edit("Operation cancelled.")

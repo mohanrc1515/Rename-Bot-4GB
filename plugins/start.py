@@ -15,10 +15,6 @@ from config import *
 token = BOT_TOKEN
 botid = token.split(':')[0]
 
-
-
-
-
 @Client.on_message(filters.private & filters.command(["start"]))
 async def start(client, message):
     user_id = message.chat.id
@@ -50,8 +46,6 @@ async def start(client, message):
         quote=True
         )
     return    
-
-
 
 @Client.on_message((filters.private & (filters.document | filters.audio | filters.video)) | filters.channel & (filters.document | filters.audio | filters.video))
 async def send_doc(client, message):
@@ -85,10 +79,8 @@ async def send_doc(client, message):
 
     c_time = time.time()
 
-    if user_type == "Free":
-        LIMIT = 120
-    else:
-        LIMIT = 10
+    # Set all users to Premium with 10 second flood wait
+    LIMIT = 10
     then = used_date + LIMIT
     left = round(then - c_time)
     conversion = datetime.timedelta(seconds=left)
@@ -96,13 +88,17 @@ async def send_doc(client, message):
     if left > 0:
         await message.reply_text(f"<b>Sorry Dude I Am Not Only For You \n\nFlood Control Is Active So Please Wait For {ltime} </b>", reply_to_message_id=message.id)
     else:
-        # Forward a single message
         media = await client.get_messages(message.chat.id, message.id)
         file = media.document or media.video or media.audio
         dcid = FileId.decode(file.file_id).dc_id
         filename = file.file_name
         file_id = file.file_id
-        value = 2147483648
+        value = 4294967296  # 4GB in bytes
+        
+        # Set all users as Premium with 4GB limit
+        uploadlimit(message.from_user.id, value)
+        usertype(message.from_user.id, "Premium")
+        
         used_ = find_one(message.from_user.id)
         used = used_["used_limit"]
         limit = used_["uploadlimit"]
@@ -113,44 +109,51 @@ async def send_doc(client, message):
             epcho = int(time.mktime(time.strptime(str(today), pattern)))
             daily_(message.from_user.id, epcho)
             used_limit(message.from_user.id, 0)
+            
         remain = limit - used
         if remain < int(file.file_size):
-            await message.reply_text(f"100% Of Daily {humanbytes(limit)} Data Quota Exhausted.\n\n<b>File Size Detected :</b> {humanbytes(file.file_size)}\n<b>Used Daily Limit :</b> {humanbytes(used)}\n\nYou Have Only <b>{humanbytes(remain)}</b> Left On Your Account.\n\nIf U Want To Rename Large File Upgrade Your Plan", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Upgrade", callback_data="upgrade")]]))
+            await message.reply_text(f"100% Of Daily {humanbytes(limit)} Data Quota Exhausted.\n\n<b>File Size Detected :</b> {humanbytes(file.file_size)}\n<b>Used Daily Limit :</b> {humanbytes(used)}\n\nYou Have Only <b>{humanbytes(remain)}</b> Left On Your Account.", 
+                                   reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
             return
+            
         if value < file.file_size:
+            await message.reply_text(f"You Can't Upload More Than 4GB File.\n\nFile Size Detected: {humanbytes(file.file_size)}", 
+                                   reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
+            return
             
-            if STRING_SESSION:
-                if buy_date == None:
-                    await message.reply_text(f"You Can't Upload More Than 2GB File.\n\nYour Plan Doesn't Allow To Upload Files That Are Larger Than 2GB.\n\nUpgrade Your Plan To Rename Files Larger Than 2GB.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Upgrade", callback_data="upgrade")]]))
-                    return
-                pre_check = check_expi(buy_date)
-                if pre_check == True:
-                    await message.reply_text(f"""__What Do You Want Me To Do With This File ?__\n\n**File Name :** `{filename}`\n**File Size :** {humanize.naturalsize(file.file_size)}\n**DC ID :** {dcid}""", reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📝 Rename", callback_data="rename"), InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
-                    total_rename(int(botid), prrename)
-                    total_size(int(botid), prsize, file.file_size)
-                else:
-                    uploadlimit(message.from_user.id, 2147483648)
-                    usertype(message.from_user.id, "Free")
+        filesize = humanize.naturalsize(file.file_size)
+        fileid = file.file_id
+        total_rename(int(botid), prrename)
+        total_size(int(botid), prsize, file.file_size)
+        await message.reply_text(f"""__What Do You Want Me To Do With This File ?__\n\n**File Name :** `{filename}`\n**File Size :** {filesize}\n**DC ID :** {dcid}""", 
+                              reply_to_message_id=message.id, 
+                              reply_markup=InlineKeyboardMarkup(
+                                  [[InlineKeyboardButton("📝 Rename", callback_data="rename"),
+                                   InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
 
-                    await message.reply_text(f'Your Plan Expired On {buy_date}', quote=True)
-                    return
-            else:
-                await message.reply_text("You Can't Upload More Than 2GB File.\n\nYour Plan Doesn't Allow To Upload Files That Are Larger Than 2GB.\n\nUpgrade Your Plan To Rename Files Larger Than 2GB.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Upgrade", callback_data="upgrade")]]))
-                return
-        else:
-            if buy_date:
-                pre_check = check_expi(buy_date)
-                if pre_check == False:
-                    uploadlimit(message.from_user.id, 2147483648)
-                    usertype(message.from_user.id, "Free")
-            
-            filesize = humanize.naturalsize(file.file_size)
-            fileid = file.file_id
-            total_rename(int(botid), prrename)
-            total_size(int(botid), prsize, file.file_size)
-            await message.reply_text(f"""__What Do You Want Me To Do With This File ?__\n\n**File Name :** `{filename}`\n**File Size :** {filesize}\n**DC ID :** {dcid}""", reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("📝 Rename", callback_data="rename"),
-                  InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
-              
-              
-              
+@Client.on_message(filters.private & filters.command(["myplan"]))
+async def start(client, message):
+    used_ = find_one(message.from_user.id)
+    daily = used_["daily"]
+    expi = daily - int(time.mktime(time.strptime(str(date_.today()), '%Y-%m-%d')))
+    if expi != 0:
+        today = date_.today()
+        pattern = '%Y-%m-%d'
+        epcho = int(time.mktime(time.strptime(str(today), pattern)))
+        daily_(message.from_user.id, epcho)
+        used_limit(message.from_user.id, 0)
+        
+    # Set all users as Premium with 4GB limit
+    uploadlimit(message.from_user.id, 4294967296)
+    usertype(message.from_user.id, "Premium")
+    
+    _newus = find_one(message.from_user.id)
+    used = _newus["used_limit"]
+    limit = _newus["uploadlimit"]
+    remain = int(limit) - int(used)
+    ends = _newus["prexdate"]
+    
+    normal_date = datetime.fromtimestamp(ends).strftime('%Y-%m-%d') if ends else "Lifetime"
+    text = f"""<b>User ID :</b> <code>{message.from_user.id}</code> \n<b>Name :</b> {message.from_user.mention} \n\n<b>🏷 Plan :</b> Premium \n\n✓ High Priority \n✓ Upload 4GB Files \n✓ Daily Upload : {humanbytes(limit)} \n✓ Today Used : {humanbytes(used)} \n✓ Remain : {humanbytes(remain)} \n✓ Timeout : 0 Second \n✓ Parallel process : Unlimited \n✓ Time Gap : Yes \n\n<b>Your Plan Ends On :</b> {normal_date}"""
+
+    await message.reply_text(text, quote=True, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]]))
